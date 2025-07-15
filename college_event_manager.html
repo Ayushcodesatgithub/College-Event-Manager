@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>College Event Manager</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-firestore-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-auth-compat.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            color: white;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 20px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .nav-btn.active {
+            background: white;
+            color: #667eea;
+        }
+
+        .section {
+            display: none;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .events-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .event-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .event-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .event-header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .event-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: rotate(45deg);
+            transition: all 0.3s ease;
+        }
+
+        .event-card:hover .event-header::before {
+            right: -40%;
+        }
+
+        .event-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .event-type {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .event-content {
+            padding: 20px;
+        }
+
+        .event-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #666;
+        }
+
+        .detail-icon {
+            width: 16px;
+            height: 16px;
+            fill: #667eea;
+        }
+
+        .event-description {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .event-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #f7fafc;
+            color: #667eea;
+            border: 1px solid #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: #edf2f7;
+        }
+
+        .add-event-form {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-top: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .chatbot-container {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-top: 30px;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chatbot-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .chatbot-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            line-height: 1.5;
+        }
+
+        .user-message {
+            background: #667eea;
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+
+        .bot-message {
+            background: #f1f5f9;
+            color: #333;
+            align-self: flex-start;
+        }
+
+        .chatbot-input {
+            display: flex;
+            padding: 20px;
+            border-top: 1px solid #e2e8f0;
+            gap: 10px;
+        }
+
+        .chatbot-input input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 25px;
+            outline: none;
+        }
+
+        .chatbot-input button {
+            padding: 12px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #10b981;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .auth-container {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .auth-form {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-top: 30px;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .auth-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .auth-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .events-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .auth-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎓 College Event Manager</h1>
+            <p>Never miss another club event, workshop, or hackathon!</p>
+            <div class="auth-container" id="authContainer">
+                <button id="loginBtn" class="auth-btn" onclick="showSection('login')">Login</button>
+                <button id="registerBtn" class="auth-btn" onclick="showSection('register')">Register</button>
+                <button id="logoutBtn" class="auth-btn" onclick="signOutUser()" style="display: none;">Logout</button>
+                <span id="userEmail" style="color: white; font-weight: 600;"></span>
+            </div>
+            <div class="nav-buttons">
+                <button class="nav-btn active" onclick="showSection('events')">📅 Events</button>
+                <button class="nav-btn" id="addEventBtn" onclick="showSection('add-event')">➕ Add Event</button>
+                <button class="nav-btn" onclick="showSection('chatbot')">🤖 Event Assistant</button>
+            </div>
+        </div>
+
+        <!-- Login Section -->
+        <div id="login" class="section">
+            <div class="auth-form">
+                <h2 style="margin-bottom: 20px; color: #333;">Login</h2>
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" required>
+                </div>
+                <button class="btn btn-primary" onclick="signInUser()">Login</button>
+            </div>
+        </div>
+
+        <!-- Register Section -->
+        <div id="register" class="section">
+            <div class="auth-form">
+                <h2 style="margin-bottom: 20px; color: #333;">Register</h2>
+                <div class="form-group">
+                    <label for="registerEmail">Email</label>
+                    <input type="email" id="registerEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Password</label>
+                    <input type="password" id="registerPassword" required>
+                </div>
+                <button class="btn btn-primary" onclick="registerUser()">Register</button>
+            </div>
+        </div>
+
+        <!-- Events Section -->
+        <div id="events" class="section active">
+            <div class="events-grid" id="eventsGrid">
+                <!-- Events will be populated here -->
+            </div>
+            <div id="emptyState" class="empty-state">
+                <h3>No events found</h3>
+                <p>Add some events to get started!</p>
+            </div>
+        </div>
+
+        <!-- Add Event Section -->
+        <div id="add-event" class="section">
+            <div class="add-event-form">
+                <h2 style="margin-bottom: 20px; color: #333;">Add New Event</h2>
+                <form id="eventForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="eventName">Event Name</label>
+                            <input type="text" id="eventName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="eventType">Event Type</label>
+                            <select id="eventType" required>
+                                <option value="">Select type</option>
+                                <option value="Workshop">Workshop</option>
+                                <option value="Hackathon">Hackathon</option>
+                                <option value="Club Event">Club Event</option>
+                                <option value="Seminar">Seminar</option>
+                                <option value="Competition">Competition</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="eventDate">Date</label>
+                            <input type="date" id="eventDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="eventTime">Time</label>
+                            <input type="time" id="eventTime" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="eventVenue">Venue</label>
+                            <input type="text" id="eventVenue" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="eventOrganizer">Organizer</label>
+                            <input type="text" id="eventOrganizer" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="eventDescription">Description</label>
+                        <textarea id="eventDescription" rows="4" placeholder="Describe the event..."></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Add Event</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Chatbot Section -->
+        <div id="chatbot" class="section">
+            <div class="chatbot-container">
+                <div class="chatbot-header">
+                    <h2>🤖 Event Assistant</h2>
+                    <p>Get tips and insights about upcoming events</p>
+                </div>
+                <div class="chatbot-messages" id="chatMessages">
+                    <div class="message bot-message">
+                        Hi! I'm your Event Assistant. Ask me about any upcoming events and I'll provide tips on what you can learn and how to prepare!
+                    </div>
+                </div>
+                <div class="chatbot-input">
+                    <input type="text" id="chatInput" placeholder="Ask about an event..." onkeypress="handleChatKeyPress(event)">
+                    <button onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+  <script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyBxK2l2djuIYqAiZyRZ5fhj-fKdjQx5Ej0",
+    authDomain: "ashucool-463da.firebaseapp.com",
+    projectId: "ashucool-463da",
+    storageBucket: "ashucool-463da.firebasestorage.app",
+    messagingSenderId: "773466210096",
+    appId: "1:773466210096:web:46ede03ec2d326a06ed2f5",
+    measurementId: "G-W4WE8154J5"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+       
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // Sample events data (will be replaced with Firebase data)
+        let events = [
+            {
+                id: 1,
+                name: "Web Development Workshop",
+                type: "Workshop",
+                date: "2025-07-20",
+                time: "14:00",
+                venue: "Computer Lab A",
+                organizer: "Tech Club",
+                description: "Learn HTML, CSS, and JavaScript basics. Build your first website!"
+            },
+            {
+                id: 2,
+                name: "AI Innovation Hackathon",
+                type: "Hackathon",
+                date: "2025-07-25",
+                time: "09:00",
+                venue: "Main Auditorium",
+                organizer: "AI Society",
+                description: "48-hour hackathon focusing on AI solutions for real-world problems."
+            },
+            {
+                id: 3,
+                name: "Career Fair 2025",
+                type: "Career Event",
+                date: "2025-07-30",
+                time: "10:00",
+                venue: "Student Center",
+                organizer: "Career Services",
+                description: "Meet with top employers and explore internship opportunities."
+            }
+        ];
+
+        // Authentication handling
+        let currentUser = null;
+
+        auth.onAuthStateChanged((user) => {
+            currentUser = user;
+            const loginBtn = document.getElementById('loginBtn');
+            const registerBtn = document.getElementById('registerBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const userEmail = document.getElementById('userEmail');
+            const addEventBtn = document.getElementById('addEventBtn');
+
+            if (user) {
+                loginBtn.style.display = 'none';
+                registerBtn.style.display = 'none';
+                logoutBtn.style.display = 'inline-block';
+                userEmail.textContent = user.email;
+                addEventBtn.style.display = 'inline-block';
+            } else {
+                loginBtn.style.display = 'inline-block';
+                registerBtn.style.display = 'inline-block';
+                logoutBtn.style.display = 'none';
+                userEmail.textContent = '';
+                addEventBtn.style.display = 'none';
+            }
+        });
+
+    function signInUser() {
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+
+    const collegeDomain = "@cgu-odisha.ac.in"; // <- change this
+    if (!email.endsWith(collegeDomain)) {
+        showNotification("Only college email IDs are allowed.");
+        return;
+    }
+
+    auth.signInWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+            showNotification('Successfully signed in!');
+            showSection('events');
+            document.querySelector('.nav-btn').classList.add('active');
+        })
+        .catch((error) => {
+            showNotification(`Error: ${error.message}`);
+        });
+}
+
+
+       function registerUser() {
+    const email = document.getElementById('registerEmail').value;
+    const password = document.getElementById('registerPassword').value;
+
+    // Only allow college email
+    const collegeDomain = "@cgu-odisha.ac.in"; // <- change this to your actual domain
+    if (!email.endsWith(collegeDomain)) {
+        showNotification("Please use your official college email to register.");
+        return;
+    }
+
+    auth.createUserWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+            showNotification('Successfully registered!');
+            showSection('events');
+            document.querySelector('.nav-btn').classList.add('active');
+        })
+        .catch((error) => {
+            showNotification(`Error: ${error.message}`);
+        });
+}
+
+
+        function signOutUser() {
+            auth.signOut()
+                .then(() => {
+                    showNotification('Successfully signed out!');
+                    showSection('events');
+                    document.querySelector('.nav-btn').classList.add('active');
+                })
+                .catch((error) => {
+                    showNotification(`Error: ${error.message}`);
+                });
+        }
+
+        // Navigation functions
+        function showSection(sectionId) {
+            const sections = document.querySelectorAll('.section');
+            const buttons = document.querySelectorAll('.nav-btn');
+            
+            sections.forEach(section => section.classList.remove('active'));
+            buttons.forEach(button => button.classList.remove('active'));
+            
+            if (sectionId === 'add-event' && !currentUser) {
+                showNotification('Please sign in to add events');
+                sectionId = 'login';
+            }
+            
+            document.getElementById(sectionId).classList.add('active');
+            const navBtn = Array.from(buttons).find(btn => btn.onclick.toString().includes(sectionId));
+            if (navBtn) navBtn.classList.add('active');
+        }
+
+        // Event management functions
+        function displayEvents() {
+            const eventsGrid = document.getElementById('eventsGrid');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (events.length === 0) {
+                eventsGrid.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            eventsGrid.style.display = 'grid';
+            emptyState.style.display = 'none';
+            
+            eventsGrid.innerHTML = events.map(event => `
+                <div class="event-card">
+                    <div class="event-header">
+                        <div class="event-title">${event.name}</div>
+                        <div class="event-type">${event.type}</div>
+                    </div>
+                    <div class="event-content">
+                        <div class="event-details">
+                            <div class="detail-item">
+                                <svg class="detail-icon" viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>
+                                ${formatDate(event.date)}
+                            </div>
+                            <div class="detail-item">
+                                <svg class="detail-icon" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm4.2 14.2L11 13V7h1.5v5.2l4.5 2.7-.8 1.3z"/></svg>
+                                ${event.time}
+                            </div>
+                            <div class="detail-item">
+                                <svg class="detail-icon" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                                ${event.venue}
+                            </div>
+                            <div class="detail-item">
+                                <svg class="detail-icon" viewBox="0 0 24 24"><path d="M16 4c0-1.11.89-2 2-2s2 .89 2 2-.89 2-2 2-2-.89-2-2zm4 18v-6h2.5l-2.54-7.63A1.5 1.5 0 0 0 18.54 8H16c-.8 0-1.5.7-1.5 1.5v6c0 .8.7 1.5 1.5 1.5h2v5h2z"/></svg>
+                                ${event.organizer}
+                            </div>
+                        </div>
+                        <div class="event-description">${event.description}</div>
+                        <div class="event-actions">
+                            <button class="btn btn-primary" onclick="registerForEvent(${event.id})">Register</button>
+                            <button class="btn btn-secondary" onclick="askAboutEvent('${event.name}')">Ask Assistant</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                weekday: 'short', 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+        }
+
+        function registerForEvent(eventId) {
+            if (!currentUser) {
+                showNotification('Please sign in to register for events');
+                showSection('login');
+                return;
+            }
+            const event = events.find(e => e.id === eventId);
+            showNotification(`Successfully registered for ${event.name}!`);
+            
+            // Schedule notification
+            scheduleNotification(event);
+        }
+
+        function scheduleNotification(event) {
+            const eventDate = new Date(event.date + 'T' + event.time);
+            const now = new Date();
+            const timeDiff = eventDate.getTime() - now.getTime();
+            const oneDayBefore = timeDiff - (24 * 60 * 60 * 1000);
+            
+            if (oneDayBefore > 0) {
+                setTimeout(() => {
+                    showNotification(`Reminder: ${event.name} is tomorrow at ${event.time}`);
+                }, oneDayBefore);
+            }
+        }
+
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Form handling
+        document.getElementById('eventForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!currentUser) {
+                showNotification('Please sign in to add events');
+                showSection('login');
+                return;
+            }
+            
+            const newEvent = {
+                id: events.length + 1,
+                name: document.getElementById('eventName').value,
+                type: document.getElementById('eventType').value,
+                date: document.getElementById('eventDate').value,
+                time: document.getElementById('eventTime').value,
+                venue: document.getElementById('eventVenue').value,
+                organizer: document.getElementById('eventOrganizer').value,
+                description: document.getElementById('eventDescription').value,
+                createdBy: currentUser.email
+            };
+            
+            // Add to Firebase
+            addEventToFirebase(newEvent);
+            
+            // Add to local array
+            events.push(newEvent);
+            displayEvents();
+            
+            // Reset form
+            this.reset();
+            showNotification('Event added successfully!');
+            
+            // Switch to events view
+            showSection('events');
+            document.querySelector('.nav-btn').classList.add('active');
+            document.querySelectorAll('.nav-btn')[1].classList.remove('active');
+        });
+
+        // Firebase functions
+        function addEventToFirebase(event) {
+            db.collection('events').add({
+                ...event,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            })
+                .then((docRef) => {
+                    console.log('Event added with ID: ', docRef.id);
+                })
+                .catch((error) => {
+                    console.error('Error adding event: ', error);
+                    showNotification('Error adding event');
+                });
+        }
+
+        function loadEventsFromFirebase() {
+            db.collection('events')
+                .orderBy('date', 'asc')
+                .onSnapshot((querySnapshot) => {
+                    events = [];
+                    querySnapshot.forEach((doc) => {
+                        events.push({ id: doc.id, ...doc.data() });
+                    });
+                    displayEvents();
+                });
+        }
+
+        // Chatbot functions
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            addMessageToChat(message, 'user');
+            input.value = '';
+            
+            // Simulate bot response (replace with actual Gemini API call)
+            setTimeout(() => {
+                const response = generateBotResponse(message);
+                addMessageToChat(response, 'bot');
+            }, 1000);
+        }
+
+        function addMessageToChat(message, sender) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            messageDiv.textContent = message;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function generateBotResponse(message) {
+            // This would be replaced with actual Gemini API call
+            const responses = {
+                'workshop': 'Workshops are great for hands-on learning! Come prepared with a laptop and an open mind. You\'ll learn practical skills that you can apply immediately.',
+                'hackathon': 'Hackathons are intense but rewarding! Form a diverse team, brainstorm creative solutions, and don\'t forget to take breaks. Focus on building something functional rather than perfect.',
+                'career': 'Career events are networking goldmines! Bring multiple copies of your resume, prepare elevator pitches, and research attending companies beforehand.',
+                'default': 'That sounds like an interesting event! Make sure to arrive early, bring any required materials, and don\'t hesitate to ask questions. Networking with other attendees can be just as valuable as the event itself!'
+            };
+            
+            const lowerMessage = message.toLowerCase();
+            for (const [key, response] of Object.entries(responses)) {
+                if (lowerMessage.includes(key)) {
+                    return response;
+                }
+            }
+            
+            return responses.default;
+        }
+
+        function askAboutEvent(eventName) {
+            showSection('chatbot');
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.nav-btn')[2].classList.add('active');
+            
+            setTimeout(() => {
+                document.getElementById('chatInput').value = `Tell me about ${eventName}`;
+                sendMessage();
+            }, 500);
+        }
+
+        function handleChatKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            displayEvents();
+            loadEventsFromFirebase();
+            
+            // Set minimum date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('eventDate').setAttribute('min', today);
+        });
+
+        window.signInUser = signInUser;
+window.registerUser = registerUser;
+window.signOutUser = signOutUser;
+window.showSection = showSection;
+window.sendMessage = sendMessage;
+window.askAboutEvent = askAboutEvent;
+window.handleChatKeyPress = handleChatKeyPress;
+
+    </script>
+</body>
+</html>
