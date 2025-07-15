@@ -550,12 +550,12 @@
         <div id="chatbot" class="section">
             <div class="chatbot-container">
                 <div class="chatbot-header">
-                    <h2>🤖 Event Assistant</h2>
+                    <h2>🤖 Event Assistant (Powered by Gemini)</h2>
                     <p>Get tips and insights about upcoming events</p>
                 </div>
                 <div class="chatbot-messages" id="chatMessages">
                     <div class="message bot-message">
-                        Hi! I'm your Event Assistant. Ask me about any upcoming events and I'll provide tips on what you can learn and how to prepare!
+                        Hi! I'm your Gemini-powered Event Assistant. Ask me about upcoming events, preparation tips, or event details like dates and venues!
                     </div>
                 </div>
                 <div class="chatbot-input">
@@ -568,31 +568,25 @@
 
     <div id="notification" class="notification"></div>
 
-  <script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
+    <script type="module">
+        // Import Firebase SDK
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
 
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyBxK2l2djuIYqAiZyRZ5fhj-fKdjQx5Ej0",
-    authDomain: "ashucool-463da.firebaseapp.com",
-    projectId: "ashucool-463da",
-    storageBucket: "ashucool-463da.firebasestorage.app",
-    messagingSenderId: "773466210096",
-    appId: "1:773466210096:web:46ede03ec2d326a06ed2f5",
-    measurementId: "G-W4WE8154J5"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-       
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBxK2l2djuIYqAiZyRZ5fhj-fKdjQx5Ej0",
+            authDomain: "ashucool-463da.firebaseapp.com",
+            projectId: "ashucool-463da",
+            storageBucket: "ashucool-463da.firebasestorage.app",
+            messagingSenderId: "773466210096",
+            appId: "1:773466210096:web:46ede03ec2d326a06ed2f5",
+            measurementId: "G-W4WE8154J5"
+        };
 
         // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
@@ -657,50 +651,47 @@
             }
         });
 
-    function signInUser() {
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
+        function signInUser() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
 
-    const collegeDomain = "@cgu-odisha.ac.in"; // <- change this
-    if (!email.endsWith(collegeDomain)) {
-        showNotification("Only college email IDs are allowed.");
-        return;
-    }
+            const collegeDomain = "@cgu-odisha.ac.in";
+            if (!email.endsWith(collegeDomain)) {
+                showNotification("Only college email IDs are allowed.");
+                return;
+            }
 
-    auth.signInWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-            showNotification('Successfully signed in!');
-            showSection('events');
-            document.querySelector('.nav-btn').classList.add('active');
-        })
-        .catch((error) => {
-            showNotification(`Error: ${error.message}`);
-        });
-}
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    showNotification('Successfully signed in!');
+                    showSection('events');
+                    document.querySelector('.nav-btn').classList.add('active');
+                })
+                .catch((error) => {
+                    showNotification(`Error: ${error.message}`);
+                });
+        }
 
+        function registerUser() {
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
 
-       function registerUser() {
-    const email = document.getElementById('registerEmail').value;
-    const password = document.getElementById('registerPassword').value;
+            const collegeDomain = "@cgu-odisha.ac.in";
+            if (!email.endsWith(collegeDomain)) {
+                showNotification("Please use your official college email to register.");
+                return;
+            }
 
-    // Only allow college email
-    const collegeDomain = "@cgu-odisha.ac.in"; // <- change this to your actual domain
-    if (!email.endsWith(collegeDomain)) {
-        showNotification("Please use your official college email to register.");
-        return;
-    }
-
-    auth.createUserWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-            showNotification('Successfully registered!');
-            showSection('events');
-            document.querySelector('.nav-btn').classList.add('active');
-        })
-        .catch((error) => {
-            showNotification(`Error: ${error.message}`);
-        });
-}
-
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    showNotification('Successfully registered!');
+                    showSection('events');
+                    document.querySelector('.nav-btn').classList.add('active');
+                })
+                .catch((error) => {
+                    showNotification(`Error: ${error.message}`);
+                });
+        }
 
         function signOutUser() {
             auth.signOut()
@@ -894,7 +885,7 @@
         }
 
         // Chatbot functions
-        function sendMessage() {
+        async function sendMessage() {
             const input = document.getElementById('chatInput');
             const message = input.value.trim();
             
@@ -903,11 +894,13 @@
             addMessageToChat(message, 'user');
             input.value = '';
             
-            // Simulate bot response (replace with actual Gemini API call)
-            setTimeout(() => {
-                const response = generateBotResponse(message);
+            try {
+                const response = await getGeminiResponse(message);
                 addMessageToChat(response, 'bot');
-            }, 1000);
+            } catch (error) {
+                console.error('Error in chatbot:', error);
+                addMessageToChat('Sorry, something went wrong with the Gemini API. Please check your API key or try again later.', 'bot');
+            }
         }
 
         function addMessageToChat(message, sender) {
@@ -920,23 +913,64 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        function generateBotResponse(message) {
-            // This would be replaced with actual Gemini API call
-            const responses = {
-                'workshop': 'Workshops are great for hands-on learning! Come prepared with a laptop and an open mind. You\'ll learn practical skills that you can apply immediately.',
-                'hackathon': 'Hackathons are intense but rewarding! Form a diverse team, brainstorm creative solutions, and don\'t forget to take breaks. Focus on building something functional rather than perfect.',
-                'career': 'Career events are networking goldmines! Bring multiple copies of your resume, prepare elevator pitches, and research attending companies beforehand.',
-                'default': 'That sounds like an interesting event! Make sure to arrive early, bring any required materials, and don\'t hesitate to ask questions. Networking with other attendees can be just as valuable as the event itself!'
-            };
-            
-            const lowerMessage = message.toLowerCase();
-            for (const [key, response] of Object.entries(responses)) {
-                if (lowerMessage.includes(key)) {
-                    return response;
+        async function getGeminiResponse(message) {
+            // Replace with your Gemini API key
+            const GEMINI_API_KEY = 'AIzaSyC_7HN6fmV7VCa87eRtN6MZj1dN7Q5NTYg'; // Paste your Gemini API key here
+            const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+
+            // Provide event context to Gemini
+            const eventContext = events.map(event => ({
+                name: event.name,
+                type: event.type,
+                date: formatDate(event.date),
+                time: event.time,
+                venue: event.venue,
+                organizer: event.organizer,
+                description: event.description
+            }));
+
+            const prompt = `
+                You are an event assistant for a college event management system. Your role is to provide helpful tips and insights about upcoming events, including preparation advice, event details, and dates. Below is the list of upcoming events:
+
+                ${JSON.stringify(eventContext, null, 2)}
+
+                User query: "${message}"
+
+                Provide a concise, friendly, and informative response. If the query mentions a specific event, include details like the date, time, and venue, and offer tailored preparation tips. If the query is general (e.g., "upcoming events" or "what events are there"), list relevant events with brief details. If the query is unrelated to events, respond politely and redirect to event-related assistance.
+            `;
+
+            try {
+                const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: prompt
+                            }]
+                        }],
+                        generationConfig: {
+                            maxOutputTokens: 150,
+                            temperature: 0.7
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
+
+                const data = await response.json();
+                if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts || !data.candidates[0].content.parts[0].text) {
+                    throw new Error('Invalid response structure from Gemini API');
+                }
+                return data.candidates[0].content.parts[0].text.trim() || 'Sorry, I could not process your request. Please try again.';
+            } catch (error) {
+                console.error('Error fetching Gemini response:', error);
+                throw error; // Re-throw to be caught by sendMessage
             }
-            
-            return responses.default;
         }
 
         function askAboutEvent(eventName) {
@@ -967,13 +1001,12 @@
         });
 
         window.signInUser = signInUser;
-window.registerUser = registerUser;
-window.signOutUser = signOutUser;
-window.showSection = showSection;
-window.sendMessage = sendMessage;
-window.askAboutEvent = askAboutEvent;
-window.handleChatKeyPress = handleChatKeyPress;
-
+        window.registerUser = registerUser;
+        window.signOutUser = signOutUser;
+        window.showSection = showSection;
+        window.sendMessage = sendMessage;
+        window.askAboutEvent = askAboutEvent;
+        window.handleChatKeyPress = handleChatKeyPress;
     </script>
 </body>
 </html>
